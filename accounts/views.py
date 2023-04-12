@@ -16,6 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 import paypalrestsdk
 from django.http import HttpResponseBadRequest
 import json
+from django.db import IntegrityError
+
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -56,31 +58,7 @@ def updateUserProfile(request):
 
     user.first_name = data.get('first_name') or user.first_name
     user.last_name = data.get('last_name') or user.last_name
-
-    if not data.get('address'):
-        address = user.address
-    else:
-        address = data['address']
-    user.address = address
-
-    if not data.get('city'):
-        city = user.city
-    else:
-        city = data['city']
-    user.city = city
-
-    if not data.get('region'):
-        region = user.region
-    else:
-        region = data['region']
-    user.region = region
-
-    if not data.get('postal_code'):
-        postal_code = user.postal_code
-    else:
-        postal_code = data['postal_code']
-    user.postal_code = postal_code
-
+    user.plan_id = data.get('plan_id') or user.plan_id
     user.save()
 
     serializer = UserSerializer(user, many=False)
@@ -105,37 +83,8 @@ def updateUserInfo(request, pk):
 
     user.first_name = data.get('first_name') or user.first_name
     user.last_name = data.get('last_name') or user.last_name
-    user.email = data.get('email') or user.email
-
-    if not data.get('address'):
-        address = user.address
-    else:
-        address = data['address']
-    user.address = address
-    
-    if not data.get('address'):
-        address = user.address
-    else:
-        address = data['address']
-    user.address = address
-
-    if not data.get('city'):
-        city = user.city
-    else:
-        city = data['city']
-    user.city = city
-
-    if not data.get('region'):
-        region = user.region
-    else:
-        region = data['region']
-    user.region = region
-
-    if not data.get('postal_code'):
-        postal_code = user.postal_code
-    else:
-        postal_code = data['postal_code']
-    user.postal_code = postal_code
+    user.email = data.get('email', user.email)
+    user.plan_id = data.get('plan_id') or user.plan_id
 
     user.save()
 
@@ -183,10 +132,6 @@ def registerUser(request):
             last_name=data['lname'],
             email=data['email'],
             password=make_password(data['password']),
-            address=data['address'],
-            city=data['city'],
-            region=data['region'],
-            postal_code=data['postal_code']
         )
         serializer = UserSerializerWithToken(user, many=False)
         return Response(serializer.data)
@@ -208,3 +153,4 @@ def storeSubscriptionId(request):
     user.save()
     serializer = UserSerializer(user, many=False)
     return Response(serializer.data)
+

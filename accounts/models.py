@@ -67,18 +67,15 @@ class User(AbstractBaseUser):
     email = models.EmailField(max_length=255, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    
-    address = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
-    region = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=20)
+    plan_id = models.CharField(max_length=50, null=True, blank=True, default='')
+
 
     active = models.BooleanField(default=True)  # able to login
     staff = models.BooleanField(default=False)
     admin = models.BooleanField(default=False)
     subscriber = models.BooleanField(default=False)
-    mylist = models.ManyToManyField(Product, blank=True)
-    subscription_id = models.CharField(max_length=50, default='')
+    subscription_id = models.CharField(max_length=50, null=True, blank=True, default='')
+
 
     USERNAME_FIELD = 'email'  # username
     REQUIRED_FIELDS = []  # what fields are ask when running python manage.py createsuperuser

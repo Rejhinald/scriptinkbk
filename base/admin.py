@@ -3,4 +3,5 @@ from .models import *
 
 admin.site.register(Genre)
 admin.site.register(Product)
-admin.site.register(Theme)
+admin.site.register(Tier)
+admin.site.register(Comment)

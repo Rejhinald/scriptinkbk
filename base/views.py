@@ -3,11 +3,15 @@ from rest_framework.response import Response
 from .models import *
 from .serializers import *
 from django.shortcuts import render, get_object_or_404
-from rest_framework import viewsets  
+from rest_framework import viewsets
 from django.http import JsonResponse
 import paypalrestsdk
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db.models import Q
+from rest_framework import status
+from django.contrib.auth import get_user_model
+
+
 
 
 @api_view(['GET'])
@@ -25,20 +29,16 @@ def getRoutes(request):
 
         '/api/products/delete/<id>/',
         '/api/products/<update>/<id>',
-
-
-        '/api/themes/'
-        '/api/themes/create/'
-        '/api/themes/<update>/<id>'
-        '/api/themes/delete/<id>'
     ]
     return Response(routes)
+
 
 @api_view(['GET'])
 def getProducts(request):
     products = Product.objects.all()
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
+
 
 @api_view(['GET'])
 def getProduct(request, pk):
@@ -50,27 +50,35 @@ def getProduct(request, pk):
 @api_view(["POST"])
 def addProducts(request):
     data = request.data
-    print(data)
+    author_email = data['author']
     try:
-        genre = Genre.objects.get(_id=data['genre'])
-        product = Product.objects.create(
-            name = data['name'],
-            image = data['image'],
-            description = data['description'],
-            genre = genre,
-        )
-        serializer = ProductSerializer(product, many=False)
-        return Response(serializer.data)
-    except:
-        message = {'detail': 'Test'}
-        return Response(message)
+        author = User.objects.get(email=author_email)
+    except User.DoesNotExist:
+        return Response({'error': 'Author does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    genre = Genre.objects.get(_id=data['genre'])
+    tier = Tier.objects.get(id=data['tier'])
+    product = Product.objects.create(
+        name=data['name'],
+        image=data['image'],
+        short_description=data['short_description'],
+        description=data['description'],
+        genre=genre,
+        author=author,
+        tier=tier
+    )
+    serializer = ProductSerializer(product, many=False)
+    return Response(serializer.data)
+
+
+
 
 @api_view(['DELETE'])
-# @permission_classes([IsAdminUser])
 def deleteProduct(request, pk):
     product = Product.objects.get(_id=pk)
     product.delete()
     return Response('Producted Deleted')
+
 
 @api_view(["POST"])
 def addGenres(request):
@@ -79,10 +87,17 @@ def addGenres(request):
     serializer.save()
     return Response(serializer.data)
 
+
 @api_view(['GET'])
 def getGenres(request):
     genres = Genre.objects.all()
     serializer = GenreSerializer(genres, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def getGenre(request, pk):
+    genre = Genre.objects.get(_id=pk)
+    serializer = GenreSerializer(genre, many=False)
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -91,18 +106,53 @@ def getGenreProducts(request, pk):
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
+@api_view(["POST"])
+def addTier(request):
+    serializer = TierSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def getTiers(request):
+    tiers = Tier.objects.all()
+    serializer = TierSerializer(tiers, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def getTierProducts(request, pk):
+    products = Product.objects.filter(Q(tier=pk))
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+    
+
 @api_view(['PUT'])
 def editProduct(request, pk):
     data = request.data
     product = Product.objects.get(_id=pk)
-    
-    product.name = data['name']
-    product.image = data['image']
-    product.description = data['description']
 
-    genre_id = data['genre']
-    genre = get_object_or_404(Genre, _id=genre_id)
-    product.genre = genre
+    product.name = data.get('name', product.name)
+    product.image = data.get('image', product.image)
+    product.short_description = data.get('short_description', product.short_description)
+    product.description = data.get('description', product.description)
+
+    genre_id = data.get('genre', None)
+    if genre_id:
+        try:
+            genre = Genre.objects.get(_id=int(genre_id))
+            product.genre = genre
+        except Genre.DoesNotExist:
+            return Response({'error': 'Genre does not exist'}, status=status.HTTP_404_NOT_FOUND)
+    
+    tier_id = data.get('tier', None)
+    if tier_id:
+        try:
+            tier = Tier.objects.get(id=int(tier_id))
+            product.tier = tier
+        except Tier.DoesNotExist:
+            return Response({'error': 'Tier does not exist'}, status=status.HTTP_404_NOT_FOUND)
 
     product.save()
 
@@ -110,50 +160,59 @@ def editProduct(request, pk):
     return Response(serializer.data)
 
 
-@api_view(['GET'])
-def getThemes(request):
-    theme = Theme.objects.all()
-    serializer = ThemeSerializer(theme, many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def getTheme(request, pk):
-    theme = Theme.objects.get(_id=pk)
-    serializer = ProductSerializer(theme, many=False)
-    return Response(serializer.data)
 
 @api_view(['PUT'])
-def editTheme(request, pk):
-    data = request.data
-    theme = Theme.objects.get(_id=pk)
-    
-    theme.name = data['name']
-    theme.image = data['image']
-    theme.description = data['description']
+def like_product(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    product.likes += 1
+    product.save()
+    return Response({'likes': product.likes})
 
-    theme.save()
+@api_view(['PUT'])
+def unlike_product(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    product.likes -= 1
+    product.save()
+    return Response({'likes': product.likes})
 
-    serializer = ThemeSerializer(theme, many=False)
-    return Response(serializer.data)
 
-@api_view(["POST"])
-def addTheme(request):
-    data = request.data
-    print(data)
+@api_view(['GET'])
+def comment_list(request, product_id):
     try:
-        theme = Theme.objects.create(
-            name = data['name'],
-            image = data['image'],
-            description = data['description'],
-        )
-        serializer = ThemeSerializer(theme, many=False)
-        return Response(serializer.data)
-    except:
-        message = {'detail': 'Test'}
-        return Response(message)
-    
+        comments = Comment.objects.filter(product_id=product_id)
+    except Comment.DoesNotExist:
+        return Response({'error': 'Comments do not exist for the product'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CommentSerializer(comments, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_comment(request, product_id):
+    data = request.data
+    author_email = request.user.email
+    try:
+        author = User.objects.get(email=author_email)
+    except User.DoesNotExist:
+        return Response({'error': 'Author does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CommentSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save(product_id=product_id, author=author)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 @api_view(['DELETE'])
-def deleteTheme(request, pk):
-    theme = Theme.objects.get(_id=pk)
-    theme.delete()
-    return Response('Producted Deleted')
+def delete_comment(request, product_id, comment_id):
+    try:
+        comment = Comment.objects.get(pk=comment_id, product_id=product_id)
+    except Comment.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    comment.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

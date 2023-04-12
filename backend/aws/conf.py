@@ -1,13 +1,13 @@
 import datetime
-AWS_ACCESS_KEY_ID = "AKIAWLLXYZOGRY6UTAMI"
-AWS_SECRET_ACCESS_KEY = "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"
+AWS_ACCESS_KEY_ID = "AKIAWLLXYZOGSCPIPUXG"
+AWS_SECRET_ACCESS_KEY = "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"
 AWS_FILE_EXPIRE = 200
 AWS_PRELOAD_METADATA = True
 AWS_QUERYSTRING_AUTH = True
 
 DEFAULT_FILE_STORAGE = 'backend.aws.utils.MediaRootS3BotoStorage'
 STATICFILES_STORAGE = 'backend.aws.utils.StaticRootS3BotoStorage'
-AWS_STORAGE_BUCKET_NAME = 'cpe-onlyfoods'
+AWS_STORAGE_BUCKET_NAME = 'cpe-scriptink'
 S3DIRECT_REGION = 'us-west-2'
 S3_URL = '//%s.s3.amazonaws.com/' % AWS_STORAGE_BUCKET_NAME
 MEDIA_URL = '//%s.s3.amazonaws.com/media/' % AWS_STORAGE_BUCKET_NAME
